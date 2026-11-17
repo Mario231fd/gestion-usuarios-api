@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMIN
+  USUARIO
+}
+
+model Grupo {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique @db.VarChar(100)
+  creadoEn DateTime  @default(now())
+  usuarios Usuario[]
+}
+
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  nombre       String   @db.VarChar(100)
+  apellidos    String   @db.VarChar(150)
+  email        String   @unique @db.VarChar(254)
+  passwordHash String
+  foto         String?
+  rol          Rol      @default(USUARIO)
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now())
+
+  grupoId Int
+  grupo   Grupo @relation(fields: [grupoId], references: [id], onDelete: Restrict)
+
+  mensajesEnviados  Mensaje[] @relation("Emisor")
+  mensajesRecibidos Mensaje[] @relation("Receptor")
+
+  @@index([grupoId])
+}
+
+model Mensaje {
+  id         Int      @id @default(autoincrement())
+  contenido  String   @db.VarChar(2000)
+  creadoEn   DateTime @default(now())
+
+  emisorId   Int
+  receptorId Int
+
+  emisor   Usuario @relation("Emisor", fields: [emisorId], references: [id], onDelete: Restrict)
+  receptor Usuario @relation("Receptor", fields: [receptorId], references: [id], onDelete: Restrict)
+
+  @@index([emisorId, receptorId, creadoEn])
+  @@index([receptorId, creadoEn])
+}

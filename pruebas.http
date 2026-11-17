@@ -1,0 +1,218 @@
+@baseUrl = http://localhost:3000
+
+# Actualiza estos identificadores tras crear los registros.
+@grupoA = 2
+@grupoB = 3
+@anaId = 2
+@luisId = 3
+@martaId = 4
+
+### 1. Comprobar servidor y conexión con PostgreSQL
+
+GET {{baseUrl}}/api/salud
+
+### 2. Login del administrador
+# @name loginAdmin
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@local.test",
+  "password": "Mario2002fd#"
+}
+
+### 3. Consultar perfil del administrador
+
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 4. Crear grupo A
+
+POST {{baseUrl}}/api/grupos
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Desarrollo"
+}
+
+### 5. Crear grupo B
+
+POST {{baseUrl}}/api/grupos
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Diseño"
+}
+
+### 6. Listar grupos
+
+GET {{baseUrl}}/api/grupos
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 7. Crear a Ana en el grupo A
+
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Ana",
+  "apellidos": "García",
+  "email": "ana@local.test",
+  "password": "AnaSegura123!",
+  "grupoId": {{grupoA}}
+}
+
+### 8. Crear a Luis en el grupo A
+
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Luis",
+  "apellidos": "Pérez",
+  "email": "luis@local.test",
+  "password": "LuisSeguro123!",
+  "grupoId": {{grupoA}}
+}
+
+### 9. Crear a Marta en el grupo B
+
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Marta",
+  "apellidos": "López",
+  "email": "marta@local.test",
+  "password": "MartaSegura123!",
+  "grupoId": {{grupoB}}
+}
+
+### 10. Listar todos los usuarios como administrador
+
+GET {{baseUrl}}/api/usuarios
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 11. Login de Ana
+# @name loginAna
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ana@local.test",
+  "password": "AnaSegura123!"
+}
+
+### 12. Ana solo ve usuarios activos de su grupo
+
+GET {{baseUrl}}/api/usuarios
+Authorization: Bearer {{loginAna.response.body.$.token}}
+
+### 13. Ana escribe a Luis: debe funcionar
+
+POST {{baseUrl}}/api/mensajes
+Authorization: Bearer {{loginAna.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "receptorId": {{luisId}},
+  "contenido": "Hola Luis, somos del mismo grupo."
+}
+
+### 14. Ana escribe a Marta: debe devolver 403
+
+POST {{baseUrl}}/api/mensajes
+Authorization: Bearer {{loginAna.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "receptorId": {{martaId}},
+  "contenido": "Este mensaje no debería permitirse."
+}
+
+### 15. Consultar los mensajes de Ana
+
+GET {{baseUrl}}/api/mensajes
+Authorization: Bearer {{loginAna.response.body.$.token}}
+
+### 16. Login de Luis
+# @name loginLuis
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "luis@local.test",
+  "password": "LuisSeguro123!"
+}
+
+### 17. Luis consulta el mensaje recibido
+
+GET {{baseUrl}}/api/mensajes
+Authorization: Bearer {{loginLuis.response.body.$.token}}
+
+### 18. Ana intenta crear un grupo: debe devolver 403
+
+POST {{baseUrl}}/api/grupos
+Authorization: Bearer {{loginAna.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Grupo no permitido"
+}
+
+### 19. Petición sin token: debe devolver 401
+
+GET {{baseUrl}}/api/usuarios
+
+### 20. Intentar eliminar un grupo con usuarios: devuelve 409
+
+DELETE {{baseUrl}}/api/grupos/{{grupoA}}
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 21. Dar de baja a Luis
+# Ejecutar al final de las pruebas de mensajería.
+
+DELETE {{baseUrl}}/api/usuarios/{{luisId}}
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 22. El token anterior de Luis ya no sirve: devuelve 401
+
+GET {{baseUrl}}/api/mensajes
+Authorization: Bearer {{loginLuis.response.body.$.token}}
+
+### 23. Ana no puede escribir a Luis dado de baja: devuelve 403
+
+POST {{baseUrl}}/api/mensajes
+Authorization: Bearer {{loginAna.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "receptorId": {{luisId}},
+  "contenido": "Este envío debe rechazarse."
+}
+
+### 24. Subir la foto de Ana
+
+POST {{baseUrl}}/api/usuarios/{{anaId}}/foto
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=MiLimiteFoto
+
+--MiLimiteFoto
+Content-Disposition: form-data; name="foto"; filename="foto-prueba.png"
+Content-Type: image/png
+
+< ./foto-prueba.png
+--MiLimiteFoto--
+
+### 25. Consultar la foto de Ana
+
+GET {{baseUrl}}/api/usuarios/{{anaId}}/foto
+Authorization: Bearer {{loginAna.response.body.$.token}}
