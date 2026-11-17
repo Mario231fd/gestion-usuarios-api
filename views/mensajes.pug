@@ -1,0 +1,42 @@
+
+extends layout
+
+block styles
+    link(rel="stylesheet", href="/stylesheets/mensajes.css")
+
+block content
+    div.mensajes-container
+        h1 Mensajes
+        p.subtitle Habla con los usuarios de tu grupo
+
+        div.mensajes-layout
+            //- Lista de usuarios del mismo grupo
+            div.usuarios-panel
+                h2 Usuarios
+                div#listaUsuarios
+                    p Cargando usuarios...
+
+            //- Zona de conversación
+            div.conversacion-panel
+                div.conversacion-header
+                    h2#nombreReceptor Selecciona un usuario
+                    p#grupoReceptor
+
+                div#listaMensajes
+                    p Selecciona un usuario para ver la conversación.
+
+                form#mensajeForm
+                    textarea(
+                        id="contenido"
+                        name="contenido"
+                        placeholder="Escribe tu mensaje..."
+                        maxlength="2000"
+                        required
+                    )
+                    button(type="submit") Enviar
+
+        p#error.error
+
+        a.btn-registro(href="/") Volver al inicio
+
+    script(src="/javascripts/mensajes.js")

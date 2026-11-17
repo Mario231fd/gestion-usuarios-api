@@ -130,57 +130,122 @@ app.get("/api/salud", async (req, res) => {
 
 // LOGIN
 
+
 app.post("/api/auth/login", async (req, res) => {
-  const email = emailValido(req.body?.email);
-  const password = req.body?.password;
+  try {
+    console.log("1. Petición de login recibida");
 
-  if (
-    typeof password !== "string" ||
-    !password ||
-    Buffer.byteLength(password, "utf8") > 72
-  ) {
-    throw fallo(400, "Contraseña no válida.");
-  }
+    const email = emailValido(req.body?.email);
+    const password = req.body?.password;
 
-  const usuario = await prisma.usuario.findUnique({
-    where: { email }
-  });
+    console.log("2. Email recibido:", email);
 
-  if (!usuario || !usuario.activo) {
-    throw fallo(401, "Credenciales incorrectas.");
-  }
-
-  const correcta = await bcrypt.compare(
-    password,
-    usuario.passwordHash
-  );
-
-  if (!correcta) {
-    throw fallo(401, "Credenciales incorrectas.");
-  }
-
-  const token = jwt.sign(
-    {},
-    process.env.JWT_SECRET,
-    {
-      algorithm: "HS256",
-      subject: String(usuario.id),
-      expiresIn: "2h"
+    if (
+      typeof password !== "string" ||
+      !password ||
+      Buffer.byteLength(password, "utf8") > 72
+    ) {
+      throw fallo(400, "Contraseña no válida.");
     }
-  );
 
-  res.json({
-    token,
-    usuario: {
-      id: usuario.id,
-      nombre: usuario.nombre,
-      rol: usuario.rol,
-      grupoId: usuario.grupoId
+    const usuario = await prisma.usuario.findUnique({
+      where: { email }
+    });
+
+    console.log("3. Usuario encontrado:", !!usuario);
+
+    if (!usuario || !usuario.activo) {
+      throw fallo(401, "Credenciales incorrectas.");
     }
-  });
+
+    console.log("4. Comprobando contraseña");
+
+    const correcta = await bcrypt.compare(
+      password,
+      usuario.passwordHash
+    );
+
+    console.log("5. Contraseña correcta:", correcta);
+
+    if (!correcta) {
+      throw fallo(401, "Credenciales incorrectas.");
+    }
+
+    const token = jwt.sign(
+      {},
+      process.env.JWT_SECRET,
+      {
+        algorithm: "HS256",
+        subject: String(usuario.id),
+        expiresIn: "2h"
+      }
+    );
+
+    console.log("6. Login completado correctamente");
+
+    res.json({
+      token,
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        grupoId: usuario.grupoId
+      }
+    });
+
+  } catch (error) {
+    console.error("ERROR EN LOGIN:", error);
+    throw error;
+  }
 });
 
+
 // A partir de aquí se exige autenticación.
+
+// REGISTRO PÚBLICO: cualquier persona puede crear una cuenta
+
+app.post("/api/usuarios", async (req, res) => {
+    const nombre = texto(req.body?.nombre, "nombre", 100);
+    const apellidos = texto(req.body?.apellidos, "apellidos", 150);
+    const email = emailValido(req.body?.email);
+    const grupoId = idPositivo(req.body?.grupoId, "grupoId");
+    const password = req.body?.password;
+
+    if (
+        typeof password !== "string" ||
+        password.length < 12 ||
+        Buffer.byteLength(password, "utf8") > 72
+    ) {
+        throw fallo(
+            400,
+            "La contraseña debe tener al menos 12 caracteres y un máximo de 72 bytes."
+        );
+    }
+
+    const grupo = await prisma.grupo.findUnique({
+        where: { id: grupoId }
+    });
+
+    if (!grupo) {
+        throw fallo(404, "El grupo indicado no existe.");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const usuario = await prisma.usuario.create({
+        data: {
+            nombre,
+            apellidos,
+            email,
+            passwordHash,
+            grupoId,
+            rol: "USUARIO"
+        },
+        select: usuarioPublico
+    });
+
+    res.status(201).json(usuario);
+});
 
 app.use("/api", autenticar);
 
@@ -267,52 +332,7 @@ app.get("/api/usuarios", async (req, res) => {
   res.json(usuarios);
 });
 
-app.post("/api/usuarios", soloAdmin, async (req, res) => {
-  const nombre = texto(req.body?.nombre, "nombre", 100);
-  const apellidos = texto(
-    req.body?.apellidos,
-    "apellidos",
-    150
-  );
-  const email = emailValido(req.body?.email);
-  const grupoId = idPositivo(req.body?.grupoId, "grupoId");
-  const password = req.body?.password;
 
-  if (
-    typeof password !== "string" ||
-    password.length < 12 ||
-    Buffer.byteLength(password, "utf8") > 72
-  ) {
-    throw fallo(
-      400,
-      "La contraseña debe tener al menos 12 caracteres y un máximo de 72 bytes."
-    );
-  }
-
-  const grupo = await prisma.grupo.findUnique({
-    where: { id: grupoId }
-  });
-
-  if (!grupo) {
-    throw fallo(404, "El grupo indicado no existe.");
-  }
-
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  const usuario = await prisma.usuario.create({
-    data: {
-      nombre,
-      apellidos,
-      email,
-      passwordHash,
-      grupoId,
-      rol: "USUARIO"
-    },
-    select: usuarioPublico
-  });
-
-  res.status(201).json(usuario);
-});
 
 app.delete("/api/usuarios/:id", soloAdmin, async (req, res) => {
   const id = idPositivo(req.params.id);
@@ -532,22 +552,52 @@ app.get("/api/mensajes", async (req, res) => {
 });
 
 // RUTAS NO ENCONTRADAS
+
 // PÁGINAS PUG
 
+// Mostrar formulario de registro y cargar grupos desde PostgreSQL
+app.get('/registro', async (req, res, next) => {
+    try {
+        const grupos = await prisma.grupo.findMany({
+            orderBy: {
+                id: 'asc'
+            }
+        });
+
+        res.render('registro', {
+            title: 'Crear una cuenta',
+            grupos: grupos
+        });
+
+    } catch (error) {
+        console.error('Error al cargar los grupos:', error);
+        next(error);
+    }
+});
+
+// Página principal
 app.get('/', (req, res) => {
     res.redirect('/login');
 });
 
+// Página de login
 app.get('/login', (req, res) => {
     res.render('login', {
         title: 'Iniciar sesión'
     });
 });
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Ruta no encontrada."
-  });
+// pagina de mensajes
+app.get("/mensajes", (req, res) => {
+    res.render("mensajes", { title: "Mensajes" });
 });
+
+// RUTAS NO ENCONTRADAS
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Ruta no encontrada.'
+    });
+});
+
 
 // GESTIÓN CENTRALIZADA DE ERRORES
 
