@@ -13,6 +13,21 @@ const { autenticar, soloAdmin } = require("./auth");
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const UPLOADS = path.join(__dirname, "..", "uploads");
+// CONFIGURACIÓN DE PUG
+app.set('view engine', 'pug');
+
+app.set(
+    'views',
+    path.join(__dirname, '..', 'views')
+);
+
+// ARCHIVOS ESTÁTICOS
+app.use(
+    express.static(path.join(__dirname, '..', 'public'))
+);
+
+// FORMULARIOS HTML
+app.use(express.urlencoded({ extended: true }));
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   throw new Error("JWT_SECRET debe tener al menos 32 caracteres.");
@@ -517,7 +532,17 @@ app.get("/api/mensajes", async (req, res) => {
 });
 
 // RUTAS NO ENCONTRADAS
+// PÁGINAS PUG
 
+app.get('/', (req, res) => {
+    res.redirect('/login');
+});
+
+app.get('/login', (req, res) => {
+    res.render('login', {
+        title: 'Iniciar sesión'
+    });
+});
 app.use((req, res) => {
   res.status(404).json({
     error: "Ruta no encontrada."

@@ -1,0 +1,37 @@
+
+extends layout
+
+block content
+    div.login-container
+        h1 Crear cuenta
+        p.subtitle Introduce los datos del usuario
+
+        form(action="/registro" method="POST")
+            label(for="nombre") Nombre
+            input(type="text" id="nombre" name="nombre" placeholder="Introduce el nombre" required)
+
+            label(for="apellidos") Apellidos
+            input(type="text" id="apellidos" name="apellidos" placeholder="Introduce los apellidos" required)
+
+            label(for="email") Email
+            input(type="email" id="email" name="email" placeholder="Introduce el email" required)
+
+            label(for="fotoURL") Foto URL
+            input(type="url" id="fotoURL" name="fotoURL" placeholder="URL de la foto")
+
+            label(for="grupoId") Grupo
+            select(id="grupoId" name="grupoId" required)
+                option(value="" disabled selected) Selecciona un grupo
+                if grupos && grupos.length > 0
+                    each grupo in grupos
+                        option(value=grupo.id)= grupo.nombre
+                else
+                    option(value="" disabled) No hay grupos disponibles
+
+            label(for="rol") Rol
+            input(type="text" id="rol" name="rol" value="admin" readonly)
+
+            button(type="submit") Registrarme
+
+        p.footer ¿Ya tienes cuenta?
+        a.btn-registro(href="/login") Volver al login
