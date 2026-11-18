@@ -1,6 +1,14 @@
 extends layout
 
 block content
-    h1= message
-    h2= error.status
-    pre #{error.stack}
+    main.error-page
+        div.error-orbit.error-orbit-one(aria-hidden="true")
+        div.error-orbit.error-orbit-two(aria-hidden="true")
+        section.error-card(aria-labelledby="errorTitle")
+            span.error-illustration(aria-hidden="true") !
+            span.error-code= error.status || 500
+            h1#errorTitle Vaya, algo no ha salido bien
+            p.error-message= message || "No hemos podido encontrar esa página."
+            div.error-actions
+                a.btn-login(href="/") Volver al inicio
+                a.btn-error-secondary(href="/login") Iniciar sesión

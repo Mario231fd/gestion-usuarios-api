@@ -1,9 +1,84 @@
-
 extends layout
 
 block content
-  div.home-container
-    h1 Bienvenido a mi aplicación
-    p Gestiona tus usuarios de forma sencilla y segura.
+    main.landing-page
+        header.site-nav
+            a.site-brand(href="/" aria-label="Gestión, inicio")
+                span.site-brand-mark(aria-hidden="true") G
+                span Gestión
+            nav.site-nav-links(aria-label="Navegación principal")
+                a.nav-login(href="/login") Iniciar sesión
+                a.nav-register(href="/registro") Crear cuenta
 
-    a.btn-login(href="/login") Iniciar sesión
+        section.landing-hero
+            div.hero-copy
+                span.hero-tag
+                    span.hero-tag-spark(aria-hidden="true") ✦
+                    | UN ESPACIO PARA TRABAJAR MEJOR
+                h1 Tu equipo, en su mejor versión.
+                p Organiza usuarios, conecta a tu grupo y mantén cada conversación en el mismo lugar.
+                div.hero-actions
+                    a.btn-login(href="/login")
+                        span Entrar a mi espacio
+                        span(aria-hidden="true") →
+                    a.btn-register-home(href="/registro") Crear una cuenta
+                p.hero-caption
+                    span.caption-dot(aria-hidden="true")
+                    | Sencillo de usar. Fácil de compartir.
+
+            div.hero-art(role="img" aria-label="Ilustración de un espacio de trabajo compartido")
+                div.art-glow.art-glow-one(aria-hidden="true")
+                div.art-glow.art-glow-two(aria-hidden="true")
+                div.art-card
+                    div.art-card-top
+                        div.art-window-dots(aria-hidden="true")
+                            span
+                            span
+                            span
+                        span.art-label ESPACIO DE EQUIPO
+                    div.art-card-title
+                        span.art-icon(aria-hidden="true") ✦
+                        div
+                            strong Todo en armonía
+                            small Un lugar para avanzar juntos
+                    div.art-members
+                        div.member-stack(aria-hidden="true")
+                            span.member member-a A
+                            span.member member-b M
+                            span.member member-c L
+                            span.member.member-more +2
+                        span.art-members-label Equipo conectado
+                    div.art-divider
+                    div.art-chat
+                        div.art-chat-avatar(aria-hidden="true") M
+                        div.art-chat-message
+                            strong Marta
+                            span ¡Ya está listo! ✨
+                        span.art-chat-time 10:42
+                div.art-floating-card.floating-note
+                    span.floating-icon(aria-hidden="true") ✓
+                    span Todo fluye
+                div.art-floating-card.floating-spark(aria-hidden="true") ✦
+
+        section.feature-strip(aria-label="Ventajas")
+            article.feature-card.feature-card-purple
+                span.feature-icon(aria-hidden="true") 01
+                div
+                    h2 Gestión sencilla
+                    p Usuarios y grupos, organizados sin complicaciones.
+            article.feature-card.feature-card-coral
+                span.feature-icon(aria-hidden="true") 02
+                div
+                    h2 Conversaciones en equipo
+                    p Comparte ideas y novedades con tu grupo.
+            article.feature-card.feature-card-blue
+                span.feature-icon(aria-hidden="true") 03
+                div
+                    h2 Un espacio más claro
+                    p Encuentra lo importante y sigue adelante.
+
+        footer.landing-footer
+            span.site-brand-small
+                span.site-brand-mark(aria-hidden="true") G
+                span Gestión
+            span Hecho para trabajar mejor, juntos.

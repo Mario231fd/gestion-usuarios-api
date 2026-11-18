@@ -10,6 +10,7 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
         apellidos: document.getElementById('apellidos').value,
         email: document.getElementById('email').value,
         password: document.getElementById('password').value,
+        foto: document.getElementById('foto').value.trim() || null,
         grupoId: Number(document.getElementById('grupoId').value)
     };
 
@@ -30,8 +31,7 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
         }
 
         alert('Usuario registrado correctamente');
-
-        document.getElementById('registroForm').reset();
+        window.location.href = '/login';
 
     } catch (err) {
         console.error('Error al registrar:', err);

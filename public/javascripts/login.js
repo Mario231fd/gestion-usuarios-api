@@ -1,11 +1,10 @@
-
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const error = document.getElementById("error");
     error.textContent = "";
 
-    const email = document.getElementById("email").value;
+    const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
 
     try {
@@ -26,9 +25,16 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             return;
         }
 
+        // Guardar el token de autenticación
         sessionStorage.setItem("token", datos.token);
+
+        // Guardar toda la información del usuario devuelta por el servidor
         sessionStorage.setItem("usuario", JSON.stringify(datos.usuario));
 
+        // Guardar el correo utilizado para iniciar sesión
+        sessionStorage.setItem("email", email);
+
+        // Redirigir a la página de mensajes
         window.location.href = "/mensajes";
 
     } catch (err) {

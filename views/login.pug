@@ -1,35 +1,73 @@
-
 extends layout
 
+block styles
+    link(rel="stylesheet", href="/stylesheets/login.css")
+
 block content
-    div.login-container
-        h1 Bienvenido
-        p.subtitle Inicia sesión en tu cuenta
+    main.login-page
+        section.login-showcase(aria-label="Bienvenida")
+            a.login-brand(href="/", aria-label="Gestión de usuarios, inicio")
+                span.brand-mark(aria-hidden="true") G
+                span.brand-name Gestión
 
-        p#error.error
+            div.showcase-copy
+                span.eyebrow ACCESO A TU ESPACIO
+                h1 Todo en su sitio.
+                p Gestiona tus equipos y mantente al día desde un único lugar.
 
-        form#loginForm
-            label(for="email") Correo electrónico
-            input(
-                type="email"
-                id="email"
-                name="email"
-                placeholder="Introduce tu correo"
-                required
-            )
+            div.showcase-note
+                span.note-icon(aria-hidden="true") ✓
+                span Una experiencia sencilla, segura y hecha para tu equipo.
 
-            label(for="password") Contraseña
-            input(
-                type="password"
-                id="password"
-                name="password"
-                placeholder="Introduce tu contraseña"
-                required
-            )
+            span.showcase-orbit.orbit-one(aria-hidden="true")
+            span.showcase-orbit.orbit-two(aria-hidden="true")
 
-            button(type="submit") Iniciar sesión
+        section.login-panel(aria-labelledby="loginTitle")
+            div.login-card
+                div.mobile-brand(aria-hidden="true")
+                    span.brand-mark G
+                    span.brand-name Gestión
 
-        p.footer ¿Todavía no tienes cuenta?
-        a.btn-registro(href="/registro") Crear una cuenta
+                div.card-heading
+                    span.eyebrow Bienvenido de nuevo
+                    h2#loginTitle Inicia sesión
+                    p.subtitle Introduce tus datos para continuar.
+
+                p#error.error(role="alert" aria-live="polite")
+
+                form#loginForm
+                    div.form-field
+                        label(for="email") Correo electrónico
+                        input(
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="nombre@empresa.com"
+                            autocomplete="email"
+                            required
+                        )
+
+                    div.form-field
+                        label(for="password") Contraseña
+                        input(
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Introduce tu contraseña"
+                            autocomplete="current-password"
+                            required
+                        )
+
+                    button(type="submit")
+                        span Iniciar sesión
+                        span.button-arrow(aria-hidden="true") →
+
+                div.signup-prompt
+                    p ¿Todavía no tienes cuenta?
+                    a(href="/registro") Crear una cuenta
+
+                p.security-note
+                    span.lock-icon(aria-hidden="true") ✓
+                    | Tu acceso está protegido y es privado.
 
     script(src="/javascripts/login.js")

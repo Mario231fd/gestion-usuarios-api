@@ -1,42 +1,122 @@
-
 extends layout
 
 block styles
     link(rel="stylesheet", href="/stylesheets/mensajes.css")
 
 block content
-    div.mensajes-container
-        h1 Mensajes
-        p.subtitle Habla con los usuarios de tu grupo
+    main.messages-page
+        header.app-topbar
+            a.messages-brand(href="/", aria-label="Gestión de usuarios, inicio")
+                span.brand-mark(aria-hidden="true") G
+                span.brand-name Gestión
+            span.workspace-label ESPACIO DE EQUIPO
+            a.topbar-link(href="/") Volver al inicio
 
-        div.mensajes-layout
-            //- Lista de usuarios del mismo grupo
-            div.usuarios-panel
-                h2 Usuarios
-                div#listaUsuarios
-                    p Cargando usuarios...
+        div.mensajes-container
+            header.page-heading
+                div
+                    span.eyebrow CONVERSACIÓN COMPARTIDA
+                    h1 Chat del grupo
+                    p.subtitle Todos los miembros de tu grupo pueden participar en esta conversación.
+                span.group-badge
+                    span.group-badge-dot(aria-hidden="true")
+                    | Tu grupo
 
-            //- Zona de conversación
-            div.conversacion-panel
-                div.conversacion-header
-                    h2#nombreReceptor Selecciona un usuario
-                    p#grupoReceptor
+            section#administracionPanel.admin-panel(hidden aria-labelledby="adminTitle")
+                div.section-heading
+                    div
+                        span.eyebrow HERRAMIENTAS
+                        h2#adminTitle Administración de usuarios
+                        p Gestiona las cuentas y los permisos de tu organización.
+                    span.admin-badge Administración
 
-                div#listaMensajes
-                    p Selecciona un usuario para ver la conversación.
+                div.table-container
+                    table#tablaUsuarios
+                        thead
+                            tr
+                                th ID
+                                th Nombre
+                                th Apellidos
+                                th Email
+                                th Grupo
+                                th Rol
+                                th Estado
+                                th Acciones
+                        tbody#tablaUsuariosBody
+                            tr
+                                td(colspan="8") Cargando usuarios...
+
+                div#editarUsuarioPanel.editar-usuario-panel(hidden)
+                    div.edit-heading
+                        div
+                            span.eyebrow PERFIL DE USUARIO
+                            h3 Editar usuario
+
+                    form#editarUsuarioForm.edit-user-form
+                        input#editarUsuarioId(type="hidden")
+
+                        div.campo
+                            label(for="editarNombre") Nombre
+                            input#editarNombre(type="text" maxlength="100" required)
+
+                        div.campo
+                            label(for="editarApellidos") Apellidos
+                            input#editarApellidos(type="text" maxlength="150" required)
+
+                        div.campo
+                            label(for="editarEmail") Email
+                            input#editarEmail(type="email" maxlength="254" required)
+
+                        div.campo
+                            label(for="editarGrupo") Grupo
+                            select#editarGrupo(required)
+
+                        div.campo
+                            label(for="editarRol") Rol
+                            select#editarRol(required)
+                                option(value="USUARIO") Usuario
+                                option(value="ADMIN") Administrador
+
+                        div.campo
+                            label(for="editarActivo") Estado
+                            select#editarActivo(required)
+                                option(value="true") Activo
+                                option(value="false") Inactivo
+
+                        div.botones-edicion
+                            button(type="submit") Guardar cambios
+                            button#cancelarEdicion(type="button") Cancelar
+
+                div.admin-feedback(aria-live="polite")
+                    p#adminError.error(role="alert")
+                    p#adminExito.exito(role="status")
+
+            section.conversacion-panel(aria-labelledby="chatTitle")
+                header.conversacion-header
+                    div.chat-avatar(aria-hidden="true") G
+                    div
+                        h2#chatTitle Chat grupal
+                        p#grupoReceptor Conversación compartida con tu grupo
+                    span.chat-status
+                        span.group-badge-dot(aria-hidden="true")
+                        | Grupo
+
+                div#listaMensajes.message-list(role="log" aria-live="polite" aria-label="Mensajes del grupo")
+                    p Cargando mensajes...
 
                 form#mensajeForm
+                    label.sr-only(for="contenido") Escribe un mensaje para el grupo
                     textarea(
                         id="contenido"
                         name="contenido"
-                        placeholder="Escribe tu mensaje..."
+                        placeholder="Escribe un mensaje para todo el grupo..."
                         maxlength="2000"
                         required
                     )
-                    button(type="submit") Enviar
+                    button(type="submit")
+                        span Enviar
+                        span.send-arrow(aria-hidden="true") →
 
-        p#error.error
-
-        a.btn-registro(href="/") Volver al inicio
+            p#error.error.chat-error(role="alert" aria-live="polite")
 
     script(src="/javascripts/mensajes.js")

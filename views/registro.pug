@@ -1,48 +1,87 @@
-
 extends layout
 
+block styles
+    link(rel="stylesheet", href="/stylesheets/login.css")
+    link(rel="stylesheet", href="/stylesheets/registro.css")
+
 block content
-    div.login-container
-        h1 Crear cuenta
-        p.subtitle Introduce los datos del usuario
+    main.login-page.registration-page
+        section.login-showcase(aria-label="Bienvenida")
+            a.login-brand(href="/", aria-label="Gestión de usuarios, inicio")
+                span.brand-mark(aria-hidden="true") G
+                span.brand-name Gestión
 
-        form#registroForm
-            label(for="nombre") Nombre
-            input(type="text" id="nombre" name="nombre" maxlength="100" required)
+            div.showcase-copy
+                span.eyebrow TU EQUIPO EMPIEZA AQUÍ
+                h1 Un buen equipo lo cambia todo.
+                p Crea tu cuenta y empieza a organizar el trabajo con claridad.
 
-            label(for="apellidos") Apellidos
-            input(type="text" id="apellidos" name="apellidos" maxlength="150" required)
+            div.showcase-note
+                span.note-icon(aria-hidden="true") ✓
+                span Configura tu perfil y conecta con tu grupo en unos minutos.
 
-            label(for="email") Email
-            input(type="email" id="email" name="email" maxlength="254" required)
+            span.showcase-orbit.orbit-one(aria-hidden="true")
+            span.showcase-orbit.orbit-two(aria-hidden="true")
 
-            label(for="password") Contraseña
-            input(type="password" id="password" name="password" minlength="12" required)
+        section.login-panel(aria-labelledby="registroTitle")
+            div.login-card.registration-card
+                div.mobile-brand(aria-hidden="true")
+                    span.brand-mark G
+                    span.brand-name Gestión
 
-            label(for="foto") Foto (URL)
-            input(type="url" id="foto" name="foto" placeholder="Introduce la URL de la foto")
+                div.card-heading
+                    span.eyebrow CREAR CUENTA
+                    h2#registroTitle Únete a tu equipo
+                    p.subtitle Completa tus datos para configurar tu perfil.
 
-            label(for="grupoId") Grupo
-            select(id="grupoId" name="grupoId" required)
-                option(value="" disabled selected) Selecciona un grupo
-                each grupo in grupos
-                    option(value=grupo.id)= grupo.nombre
+                form#registroForm.registration-form
+                    div.form-field
+                        label(for="nombre") Nombre
+                        input(type="text" id="nombre" name="nombre" maxlength="100" autocomplete="given-name" required)
 
-            label(for="rol") Rol
-            select(id="rol" name="rol" required)
-                option(value="USUARIO" selected) Usuario
-                option(value="ADMIN") Administrador
+                    div.form-field
+                        label(for="apellidos") Apellidos
+                        input(type="text" id="apellidos" name="apellidos" maxlength="150" autocomplete="family-name" required)
 
-            label(for="activo") Estado
-            select(id="activo" name="activo" required)
-                option(value="true" selected) Activo
-                option(value="false") Inactivo
+                    div.form-field.field-wide
+                        label(for="email") Correo electrónico
+                        input(type="email" id="email" name="email" maxlength="254" autocomplete="email" placeholder="nombre@empresa.com" required)
 
-            p#error.error
+                    div.form-field.field-wide
+                        label(for="password") Contraseña
+                        input(type="password" id="password" name="password" minlength="12" autocomplete="new-password" placeholder="Mínimo 12 caracteres" required)
 
-            button(type="submit") Registrarme
+                    div.form-field
+                        label(for="foto") Foto de perfil (URL HTTPS pública)
+                        input(type="url" id="foto" name="foto" maxlength="2048" placeholder="https://...")
 
-        p.footer ¿Ya tienes cuenta?
-        a.btn-registro(href="/login") Volver al login
+                    div.form-field
+                        label(for="grupoId") Grupo
+                        select(id="grupoId" name="grupoId" required)
+                            option(value="" disabled selected) Selecciona un grupo
+                            each grupo in grupos
+                                option(value=grupo.id)= grupo.nombre
+
+                    div.form-field
+                        label(for="rol") Rol
+                        select(id="rol" name="rol" required)
+                            option(value="USUARIO" selected) Usuario
+                            option(value="ADMIN") Administrador
+
+                    div.form-field
+                        label(for="activo") Estado
+                        select(id="activo" name="activo" required)
+                            option(value="true" selected) Activo
+                            option(value="false") Inactivo
+
+                    p#error.error.field-wide(role="alert" aria-live="polite")
+
+                    button(type="submit" class="field-wide")
+                        span Crear cuenta
+                        span.button-arrow(aria-hidden="true") →
+
+                div.signup-prompt
+                    p ¿Ya tienes cuenta?
+                    a(href="/login") Inicia sesión
 
     script(src="/javascripts/registro.js")

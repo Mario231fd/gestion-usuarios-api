@@ -6,6 +6,7 @@ const sharp = require("sharp");
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const { randomUUID } = require("node:crypto");
+const { isIP } = require("node:net");
 
 const prisma = require("./db");
 const { autenticar, soloAdmin } = require("./auth");
@@ -57,7 +58,8 @@ const usuarioPublico = {
 const participantePublico = {
   id: true,
   nombre: true,
-  apellidos: true
+  apellidos: true,
+  foto: true
 };
 
 function fallo(status, mensaje) {
@@ -105,6 +107,46 @@ function emailValido(valor) {
   }
 
   return email;
+}
+
+function urlFotoValida(valor) {
+  if (valor === undefined || valor === null) {
+    return null;
+  }
+
+  if (typeof valor !== "string" || valor.trim().length > 2048) {
+    throw fallo(400, "La foto debe ser una URL HTTPS válida.");
+  }
+
+  const foto = valor.trim();
+
+  if (!foto) {
+    return null;
+  }
+
+  let url;
+
+  try {
+    url = new URL(foto);
+  } catch {
+    throw fallo(400, "La foto debe ser una URL HTTPS válida.");
+  }
+
+  const host = url.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "");
+
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    isIP(host)
+  ) {
+    throw fallo(400, "La foto debe ser una URL HTTPS pública.");
+  }
+
+  return url.href;
 }
 
 const upload = multer({
@@ -208,6 +250,7 @@ app.post("/api/usuarios", async (req, res) => {
     const nombre = texto(req.body?.nombre, "nombre", 100);
     const apellidos = texto(req.body?.apellidos, "apellidos", 150);
     const email = emailValido(req.body?.email);
+    const foto = urlFotoValida(req.body?.foto);
     const grupoId = idPositivo(req.body?.grupoId, "grupoId");
     const password = req.body?.password;
 
@@ -238,6 +281,7 @@ app.post("/api/usuarios", async (req, res) => {
             apellidos,
             email,
             passwordHash,
+            foto,
             grupoId,
             rol: "USUARIO"
         },
@@ -332,42 +376,110 @@ app.get("/api/usuarios", async (req, res) => {
   res.json(usuarios);
 });
 
+// EDITAR USUARIOS: solamente administradores
+app.put("/api/usuarios/:id", soloAdmin, async (req, res) => {
+    const id = idPositivo(req.params.id);
 
+    const nombre = texto(req.body?.nombre, "nombre", 100);
+    const apellidos = texto(req.body?.apellidos, "apellidos", 150);
+    const email = emailValido(req.body?.email);
+    const grupoId = idPositivo(req.body?.grupoId, "grupoId");
+    const rol = req.body?.rol;
+    const activo = req.body?.activo;
 
-app.delete("/api/usuarios/:id", soloAdmin, async (req, res) => {
-  const id = idPositivo(req.params.id);
+    if (!["ADMIN", "USUARIO"].includes(rol)) {
+        throw fallo(400, "El rol indicado no es válido.");
+    }
 
-  if (id === req.usuario.id) {
-    throw fallo(
-      400,
-      "No puedes dar de baja tu propia cuenta."
-    );
-  }
+    if (typeof activo !== "boolean") {
+        throw fallo(400, "El estado activo debe ser verdadero o falso.");
+    }
 
-  const usuario = await prisma.usuario.findUnique({
-    where: { id }
-  });
+    // Evitar que el administrador se quite sus propios permisos
+    // o desactive su propia cuenta accidentalmente.
+    if (id === req.usuario.id && (rol !== "ADMIN" || activo !== true)) {
+        throw fallo(
+            400,
+            "No puedes quitarte tus permisos de administrador ni desactivar tu cuenta."
+        );
+    }
 
-  if (!usuario) {
-    throw fallo(404, "Usuario no encontrado.");
-  }
+    const grupo = await prisma.grupo.findUnique({
+        where: { id: grupoId }
+    });
 
-  if (usuario.rol === "ADMIN") {
-    throw fallo(
-      403,
-      "Esta versión no permite dar de baja administradores."
-    );
-  }
+    if (!grupo) {
+        throw fallo(404, "El grupo indicado no existe.");
+    }
 
-  const actualizado = await prisma.usuario.update({
-    where: { id },
-    data: { activo: false },
-    select: usuarioPublico
-  });
+    const usuarioExistente = await prisma.usuario.findUnique({
+        where: { id }
+    });
 
-  res.json(actualizado);
+    if (!usuarioExistente) {
+        throw fallo(404, "Usuario no encontrado.");
+    }
+
+    const actualizado = await prisma.usuario.update({
+        where: { id },
+        data: {
+            nombre,
+            apellidos,
+            email,
+            grupoId,
+            rol,
+            activo
+        },
+        select: usuarioPublico
+    });
+
+    res.json(actualizado);
 });
 
+
+
+// ELIMINAR USUARIOS: solamente administradores
+app.delete("/api/usuarios/:id", soloAdmin, async (req, res) => {
+    const id = idPositivo(req.params.id, "id");
+
+    // Impedir que el administrador se elimine a sí mismo
+    if (id === req.usuario.id) {
+        throw fallo(400, "No puedes eliminar tu propia cuenta.");
+    }
+
+    const usuario = await prisma.usuario.findUnique({
+        where: { id }
+    });
+
+    if (!usuario) {
+        throw fallo(404, "Usuario no encontrado.");
+    }
+
+    // Impedir eliminar a otros administradores
+    if (usuario.rol === "ADMIN") {
+        throw fallo(400, "No puedes eliminar a otro administrador.");
+    }
+
+    // Eliminar mensajes relacionados y después el usuario
+    await prisma.$transaction(async (tx) => {
+        await tx.mensaje.deleteMany({
+            where: { emisorId: id }
+        });
+
+        await tx.mensaje.updateMany({
+            where: { receptorId: id },
+            data: { receptorId: null }
+        });
+
+        await tx.usuario.delete({
+            where: { id }
+        });
+    });
+
+    res.json({
+        mensaje: "Usuario eliminado correctamente."
+    });
+});
 // FOTO: el administrador la sube para el usuario indicado.
 
 app.post(
@@ -481,75 +593,55 @@ app.get("/api/usuarios/:id/foto", async (req, res) => {
   );
 });
 
-// MENSAJES
 
+// MENSAJES DEL GRUPO
+
+// Enviar mensaje al grupo del usuario conectado
 app.post("/api/mensajes", async (req, res) => {
-  const receptorId = idPositivo(
-    req.body?.receptorId,
-    "receptorId"
-  );
-
-  const contenido = texto(
-    req.body?.contenido,
-    "contenido",
-    2000
-  );
-
-  if (receptorId === req.usuario.id) {
-    throw fallo(400, "No puedes enviarte mensajes a ti mismo.");
-  }
-
-  const receptor = await prisma.usuario.findUnique({
-    where: { id: receptorId }
-  });
-
-  if (
-    !receptor ||
-    !receptor.activo ||
-    receptor.grupoId !== req.usuario.grupoId
-  ) {
-    throw fallo(
-      403,
-      "Solo puedes escribir a usuarios activos de tu mismo grupo."
+    const contenido = texto(
+        req.body?.contenido,
+        "contenido",
+        2000
     );
-  }
 
-  const mensaje = await prisma.mensaje.create({
-    data: {
-      contenido,
-      emisorId: req.usuario.id,
-      receptorId
-    },
-    include: {
-      emisor: { select: participantePublico },
-      receptor: { select: participantePublico }
-    }
-  });
+    const mensaje = await prisma.mensaje.create({
+        data: {
+            contenido,
+            emisorId: req.usuario.id,
+            grupoId: req.usuario.grupoId
+        },
+        include: {
+            emisor: {
+                select: participantePublico
+            }
+        }
+    });
 
-  res.status(201).json(mensaje);
+    res.status(201).json(mensaje);
 });
 
+
+// Obtener los mensajes del grupo del usuario conectado
 app.get("/api/mensajes", async (req, res) => {
-  const mensajes = await prisma.mensaje.findMany({
-    where: {
-      OR: [
-        { emisorId: req.usuario.id },
-        { receptorId: req.usuario.id }
-      ]
-    },
-    include: {
-      emisor: { select: participantePublico },
-      receptor: { select: participantePublico }
-    },
-    orderBy: [
-      { creadoEn: "desc" },
-      { id: "desc" }
-    ],
-    take: 100
-  });
+    const mensajes = await prisma.mensaje.findMany({
+        where: {
+            grupoId: req.usuario.grupoId
+        },
+        include: {
+            emisor: {
+                select: participantePublico
+            }
+        },
+        orderBy: [
+            { creadoEn: "asc" },
+            { id: "asc" }
+        ],
+        take: 200
+    });
 
-  res.json(mensajes);
+    res.json(mensajes);
 });
+
 
 // RUTAS NO ENCONTRADAS
 
@@ -657,9 +749,28 @@ app.use((error, req, res, next) => {
 
 // ARRANQUE
 
+
 async function iniciar() {
   await fs.mkdir(UPLOADS, { recursive: true });
   await prisma.$connect();
+
+  // CREAR GRUPOS INICIALES AUTOMÁTICAMENTE
+  const nombresGrupos = [
+    "Orden de los Cefalópodos Cuánticos",
+    "República Autónoma del Calcetín Perdido",
+    "Hermandad del Pepinillo Cósmico",
+    "Consejo Supremo de las Patatas Interdimensionales"
+  ];
+
+  for (const nombre of nombresGrupos) {
+    await prisma.grupo.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre }
+    });
+  }
+
+  console.log("Grupos iniciales comprobados correctamente.");
 
   app.listen(PORT, "127.0.0.1", () => {
     console.log(`API disponible en http://localhost:${PORT}`);

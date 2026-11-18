@@ -1,0 +1,152 @@
+.registration-page .login-panel {
+    align-items: start;
+    justify-items: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+.registration-card {
+    width: min(100%, 560px);
+}
+
+.registration-card .card-heading {
+    margin-bottom: 24px;
+}
+
+.registration-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px 16px;
+}
+
+.registration-form .field-wide {
+    grid-column: 1 / -1;
+}
+
+.registration-page .form-field {
+    gap: 7px;
+}
+
+.registration-page .form-field input,
+.registration-page .form-field select {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 13px;
+    border: 1px solid #dfe5e7;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: #172b3a;
+    font: inherit;
+    font-size: 13px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.registration-page .form-field input::placeholder {
+    color: #a4afb4;
+}
+
+.registration-page .form-field input:hover,
+.registration-page .form-field select:hover {
+    border-color: #bdcbc9;
+}
+
+.registration-page .form-field input:focus-visible,
+.registration-page .form-field select:focus-visible {
+    border-color: #438778;
+    box-shadow: 0 0 0 3px rgba(67, 135, 120, 0.14);
+}
+
+.registration-form .error {
+    margin: 0;
+}
+
+.registration-form button {
+    display: flex;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 2px;
+    border: 0;
+    border-radius: 9px;
+    background: #174b43;
+    box-shadow: 0 5px 12px rgba(23, 75, 67, 0.12);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.registration-form button:hover {
+    transform: translateY(-1px);
+    background: #103c36;
+    box-shadow: 0 8px 18px rgba(23, 75, 67, 0.18);
+}
+
+.registration-form button:focus-visible,
+.registration-page .signup-prompt a:focus-visible {
+    outline: 3px solid rgba(67, 135, 120, 0.35);
+    outline-offset: 3px;
+}
+
+.registration-form button:hover .button-arrow {
+    transform: translateX(3px);
+}
+
+.registration-page .signup-prompt {
+    margin-top: 22px;
+}
+
+@media (max-width: 800px) {
+    .registration-page .login-panel {
+        padding: 32px 24px;
+    }
+
+    .registration-card {
+        width: min(100%, 520px);
+    }
+}
+
+@media (max-width: 620px) {
+    .registration-page .login-panel {
+        padding: 0 0 30px;
+    }
+
+    .registration-page .mobile-brand {
+        margin-bottom: 36px;
+    }
+}
+
+@media (max-width: 420px) {
+    .registration-form {
+        grid-template-columns: 1fr;
+    }
+
+    .registration-form .field-wide {
+        grid-column: auto;
+    }
+}
+
+.registration-page .form-field input:focus-visible,
+.registration-page .form-field select:focus-visible {
+    border-color: var(--color-violet);
+    box-shadow: 0 0 0 4px rgba(105, 89, 238, 0.15);
+}
+
+.registration-form button {
+    background: linear-gradient(105deg, #755af1, #5269eb 62%, #438be9);
+    box-shadow: 0 8px 18px rgba(99, 87, 221, 0.23);
+}
+
+.registration-form button:hover {
+    background: linear-gradient(105deg, #6347e4, #4258d9 62%, #337bdc);
+    box-shadow: 0 11px 22px rgba(99, 87, 221, 0.3);
+}
+
+.registration-page .signup-prompt a {
+    color: #6554d2;
+}

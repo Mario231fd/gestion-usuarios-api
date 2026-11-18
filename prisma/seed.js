@@ -10,7 +10,23 @@ async function main() {
       "Configura ADMIN_EMAIL y ADMIN_PASSWORD de al menos 12 caracteres."
     );
   }
+  // Crear los 4 grupos iniciales
+  const nombresGrupos = [
+    "Orden de los Cefalópodos Cuánticos",
+    "República Autónoma del Calcetín Perdido",
+    "Hermandad del Pepinillo Cósmico",
+    "Consejo Supremo de las Patatas Interdimensionales"
+  ];
 
+  for (const nombre of nombresGrupos) {
+    await prisma.grupo.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre }
+    });
+  }
+
+  console.log("Grupos iniciales creados correctamente.");
   const grupo = await prisma.grupo.upsert({
     where: { nombre: "Administración" },
     update: {},

@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,6 +18,7 @@ model Grupo {
   nombre   String    @unique @db.VarChar(100)
   creadoEn DateTime  @default(now())
   usuarios Usuario[]
+  mensajes Mensaje[]
 }
 
 model Usuario {
@@ -45,11 +47,15 @@ model Mensaje {
   creadoEn   DateTime @default(now())
 
   emisorId   Int
-  receptorId Int
+  receptorId Int?
 
-  emisor   Usuario @relation("Emisor", fields: [emisorId], references: [id], onDelete: Restrict)
-  receptor Usuario @relation("Receptor", fields: [receptorId], references: [id], onDelete: Restrict)
+  grupoId    Int?
+  grupo      Grupo?   @relation(fields: [grupoId], references: [id], onDelete: Restrict)
+
+  emisor   Usuario  @relation("Emisor", fields: [emisorId], references: [id], onDelete: Restrict)
+  receptor Usuario? @relation("Receptor", fields: [receptorId], references: [id], onDelete: Restrict)
 
   @@index([emisorId, receptorId, creadoEn])
   @@index([receptorId, creadoEn])
+  @@index([grupoId, creadoEn])
 }
