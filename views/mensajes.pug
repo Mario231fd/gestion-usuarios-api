@@ -22,6 +22,26 @@ block content
                     span.group-badge-dot(aria-hidden="true")
                     | Tu grupo
 
+            section#perfilPanel.profile-panel(aria-labelledby="perfilTitle")
+                div.profile-avatar#perfilAvatar(aria-hidden="true")
+                    span#perfilIniciales
+                    img#perfilFoto(alt="" hidden)
+                div.profile-details
+                    span.eyebrow MI PERFIL
+                    h2#perfilTitle
+                    p Actualiza tu foto para que tu equipo te reconozca.
+                form#fotoPerfilForm.profile-form
+                    div.profile-upload-controls
+                        input#fotoPerfil.profile-file-input(type="file" name="foto" accept="image/*" aria-label="Seleccionar una foto de perfil")
+                        label#seleccionarFotoPerfil.profile-select-button(for="fotoPerfil")
+                            span(aria-hidden="true") +
+                            | Elegir imagen
+                        span#fotoPerfilNombre.profile-filename Ninguna imagen seleccionada
+                    div.profile-upload-actions
+                        span.profile-hint Imagen de hasta 2 MB
+                        button#guardarFotoPerfil(type="submit" disabled) Guardar foto
+                p#fotoPerfilFeedback.profile-feedback(aria-live="polite")
+
             section#administracionPanel.admin-panel(hidden aria-labelledby="adminTitle")
                 div.section-heading
                     div

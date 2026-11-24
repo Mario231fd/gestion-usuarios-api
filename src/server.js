@@ -159,6 +159,65 @@ const upload = multer({
   }
 });
 
+async function guardarFotoUsuario(id, archivo) {
+  let imagen;
+
+  try {
+    imagen = await sharp(archivo.buffer, {
+      limitInputPixels: 20000000
+    })
+      .rotate()
+      .resize({
+        width: 800,
+        height: 800,
+        fit: "inside",
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+  } catch {
+    throw fallo(
+      400,
+      "El archivo no es una imagen válida o es demasiado grande."
+    );
+  }
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { id },
+    select: { foto: true }
+  });
+
+  if (!usuario) {
+    throw fallo(404, "Usuario no encontrado.");
+  }
+
+  const nombreArchivo = `${randomUUID()}.jpg`;
+  const ruta = path.join(UPLOADS, nombreArchivo);
+
+  await fs.writeFile(ruta, imagen);
+
+  let actualizado;
+
+  try {
+    actualizado = await prisma.usuario.update({
+      where: { id },
+      data: { foto: nombreArchivo },
+      select: usuarioPublico
+    });
+  } catch (error) {
+    await fs.unlink(ruta).catch(() => {});
+    throw error;
+  }
+
+  if (usuario.foto) {
+    await fs
+      .unlink(path.join(UPLOADS, usuario.foto))
+      .catch(() => {});
+  }
+
+  return actualizado;
+}
+
 // ESTADO DEL SERVICIO
 
 app.get("/api/salud", async (req, res) => {
@@ -489,65 +548,23 @@ app.post(
   async (req, res) => {
     const id = idPositivo(req.params.id);
 
-    const usuario = await prisma.usuario.findUnique({
-      where: { id }
-    });
-
-    if (!usuario) {
-      throw fallo(404, "Usuario no encontrado.");
-    }
-
     if (!req.file) {
       throw fallo(400, "Debes enviar el archivo en el campo foto.");
     }
 
-    let imagen;
+    res.json(await guardarFotoUsuario(id, req.file));
+  }
+);
 
-    try {
-      imagen = await sharp(req.file.buffer, {
-        limitInputPixels: 20000000
-      })
-        .rotate()
-        .resize({
-          width: 800,
-          height: 800,
-          fit: "inside",
-          withoutEnlargement: true
-        })
-        .jpeg({ quality: 85 })
-        .toBuffer();
-    } catch {
-      throw fallo(
-        400,
-        "El archivo no es una imagen válida o es demasiado grande."
-      );
+app.post(
+  "/api/auth/me/foto",
+  upload.single("foto"),
+  async (req, res) => {
+    if (!req.file) {
+      throw fallo(400, "Debes enviar el archivo en el campo foto.");
     }
 
-    const nombreArchivo = `${randomUUID()}.jpg`;
-    const ruta = path.join(UPLOADS, nombreArchivo);
-
-    await fs.writeFile(ruta, imagen);
-
-    let actualizado;
-
-    try {
-      actualizado = await prisma.usuario.update({
-        where: { id },
-        data: { foto: nombreArchivo },
-        select: usuarioPublico
-      });
-    } catch (error) {
-      await fs.unlink(ruta).catch(() => {});
-      throw error;
-    }
-
-    if (usuario.foto) {
-      await fs
-        .unlink(path.join(UPLOADS, usuario.foto))
-        .catch(() => {});
-    }
-
-    res.json(actualizado);
+    res.json(await guardarFotoUsuario(req.usuario.id, req.file));
   }
 );
 

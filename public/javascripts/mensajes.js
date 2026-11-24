@@ -12,10 +12,26 @@ const administracionPanel = document.getElementById("administracionPanel");
 const tablaUsuariosBody = document.getElementById("tablaUsuariosBody");
 const editarUsuarioPanel = document.getElementById("editarUsuarioPanel");
 const editarUsuarioForm = document.getElementById("editarUsuarioForm");
+const fotoPerfilForm = document.getElementById("fotoPerfilForm");
+const fotoPerfilInput = document.getElementById("fotoPerfil");
+const fotoPerfil = document.getElementById("perfilFoto");
+const fotoPerfilIniciales = document.getElementById("perfilIniciales");
+const fotoPerfilNombre = document.getElementById("fotoPerfilNombre");
+const fotoPerfilFeedback = document.getElementById("fotoPerfilFeedback");
 
 let ultimoMensajeId = null;
 let intervaloMensajes = null;
 let gruposDisponibles = [];
+let fotoPerfilUrlObjeto = null;
+let solicitudFotoPerfil = 0;
+let urlsFotosMensajes = [];
+
+function liberarFotoPerfilUrl() {
+    if (fotoPerfilUrlObjeto) {
+        URL.revokeObjectURL(fotoPerfilUrlObjeto);
+        fotoPerfilUrlObjeto = null;
+    }
+}
 
 if (!token || !usuarioActual) {
     window.location.href = "/login";
@@ -51,6 +67,27 @@ async function peticionAPI(url, opciones = {}) {
     return datos;
 }
 
+async function peticionArchivo(url) {
+    const respuesta = await fetch(url, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+
+    if (respuesta.status === 401) {
+        sessionStorage.clear();
+        window.location.href = "/login";
+        throw new Error("Sesión caducada.");
+    }
+
+    if (!respuesta.ok) {
+        const datos = await respuesta.json();
+        throw new Error(datos?.error || "No se pudo cargar la imagen.");
+    }
+
+    return respuesta.blob();
+}
+
 // ======================================
 // MENSAJES DE ERROR DEL CHAT
 // ======================================
@@ -60,6 +97,120 @@ function mostrarError(mensaje) {
         error.textContent = mensaje;
     }
 }
+
+function mostrarFotoPerfil(foto, id) {
+    const solicitud = ++solicitudFotoPerfil;
+    fotoPerfil.hidden = true;
+    fotoPerfilIniciales.hidden = false;
+
+    liberarFotoPerfilUrl();
+
+    if (typeof foto !== "string" || !foto) return;
+
+    let urlFoto;
+
+    try {
+        urlFoto = new URL(foto);
+    } catch {
+        urlFoto = null;
+    }
+
+    if (urlFoto && urlFoto.protocol === "https:" && !urlFoto.username && !urlFoto.password) {
+        fotoPerfil.src = urlFoto.href;
+        fotoPerfil.hidden = false;
+        fotoPerfilIniciales.hidden = true;
+        return;
+    }
+
+    peticionArchivo(`/api/usuarios/${id}/foto`)
+        .then(imagen => {
+            if (solicitud !== solicitudFotoPerfil) return;
+            fotoPerfilUrlObjeto = URL.createObjectURL(imagen);
+            fotoPerfil.src = fotoPerfilUrlObjeto;
+            fotoPerfil.hidden = false;
+            fotoPerfilIniciales.hidden = true;
+        })
+        .catch(err => {
+            if (solicitud === solicitudFotoPerfil) {
+                console.error("No se pudo cargar la foto de perfil:", err);
+            }
+        });
+}
+
+async function cargarPerfil() {
+    try {
+        const perfil = await peticionAPI("/api/auth/me");
+        document.getElementById("perfilTitle").textContent =
+            `${perfil.nombre} ${perfil.apellidos}`;
+        fotoPerfilIniciales.textContent =
+            `${perfil.nombre?.charAt(0) || ""}${perfil.apellidos?.charAt(0) || ""}`.toUpperCase() || "?";
+        mostrarFotoPerfil(perfil.foto, perfil.id);
+    } catch (err) {
+        mostrarError(err.message);
+    }
+}
+
+fotoPerfilInput.addEventListener("change", () => {
+    fotoPerfilFeedback.textContent = "";
+    liberarFotoPerfilUrl();
+
+    const archivo = fotoPerfilInput.files[0];
+    const boton = document.getElementById("guardarFotoPerfil");
+
+    if (!archivo) {
+        fotoPerfilNombre.textContent = "Ninguna imagen seleccionada";
+        boton.disabled = true;
+        return;
+    }
+
+    if (archivo.size > 2 * 1024 * 1024) {
+        fotoPerfilInput.value = "";
+        fotoPerfilNombre.textContent = "Ninguna imagen seleccionada";
+        boton.disabled = true;
+        fotoPerfilFeedback.textContent = "La imagen debe pesar 2 MB o menos.";
+        return;
+    }
+
+    fotoPerfilNombre.textContent = archivo.name;
+    fotoPerfilUrlObjeto = URL.createObjectURL(archivo);
+    fotoPerfil.src = fotoPerfilUrlObjeto;
+    fotoPerfil.hidden = false;
+    fotoPerfilIniciales.hidden = true;
+    boton.disabled = false;
+});
+
+fotoPerfilForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    fotoPerfilFeedback.textContent = "";
+
+    const archivo = fotoPerfilInput.files[0];
+    if (!archivo) {
+        fotoPerfilFeedback.textContent = "Selecciona una imagen antes de subirla.";
+        return;
+    }
+
+    const boton = document.getElementById("guardarFotoPerfil");
+    const datos = new FormData();
+    datos.append("foto", archivo);
+    boton.disabled = true;
+
+    try {
+        const perfil = await peticionAPI("/api/auth/me/foto", {
+            method: "POST",
+            body: datos
+        });
+        mostrarFotoPerfil(perfil.foto, perfil.id);
+        ultimoMensajeId = -1;
+        await cargarMensajes();
+        fotoPerfilInput.value = "";
+        fotoPerfilNombre.textContent = "Ninguna imagen seleccionada";
+        fotoPerfilFeedback.textContent = "Foto de perfil actualizada.";
+    } catch (err) {
+        fotoPerfilFeedback.textContent = err.message;
+    } finally {
+        boton.disabled = !fotoPerfilInput.files[0];
+    }
+});
 
 // ======================================
 // CARGAR MENSAJES
@@ -88,6 +239,8 @@ async function cargarMensajes() {
 // ======================================
 
 function mostrarMensajes(mensajes) {
+    urlsFotosMensajes.forEach(url => URL.revokeObjectURL(url));
+    urlsFotosMensajes = [];
     listaMensajes.replaceChildren();
 
     if (mensajes.length === 0) {
@@ -117,30 +270,55 @@ function mostrarMensajes(mensajes) {
         iniciales.textContent = `${emisor.nombre?.charAt(0) || ""}${emisor.apellidos?.charAt(0) || ""}`.toUpperCase() || "?";
         avatar.appendChild(iniciales);
 
-        if (typeof emisor.foto === "string") {
-            try {
-                const urlFoto = new URL(emisor.foto);
+        if (typeof emisor.foto === "string" && emisor.foto) {
+            let urlFoto = null;
 
+            try {
+                const candidata = new URL(emisor.foto);
                 if (
-                    urlFoto.protocol === "https:" &&
-                    !urlFoto.username &&
-                    !urlFoto.password
+                    candidata.protocol === "https:" &&
+                    !candidata.username &&
+                    !candidata.password
                 ) {
-                    const foto = document.createElement("img");
-                    foto.src = urlFoto.href;
-                    foto.alt = "";
-                    foto.loading = "lazy";
-                    foto.referrerPolicy = "no-referrer";
-                    foto.addEventListener("load", () => {
-                        iniciales.hidden = true;
-                        foto.hidden = false;
-                    });
-                    foto.addEventListener("error", () => foto.remove());
-                    foto.hidden = true;
-                    avatar.appendChild(foto);
+                    urlFoto = candidata.href;
                 }
             } catch {
-                // Las fotos ausentes o URL antiguas se representan con iniciales.
+                urlFoto = null;
+            }
+
+            const foto = document.createElement("img");
+            foto.alt = "";
+            foto.loading = "lazy";
+            foto.hidden = true;
+            avatar.appendChild(foto);
+
+            if (urlFoto) {
+                foto.src = urlFoto;
+                foto.referrerPolicy = "no-referrer";
+                foto.addEventListener("load", () => {
+                    iniciales.hidden = true;
+                    foto.hidden = false;
+                });
+                foto.addEventListener("error", () => foto.remove());
+            } else {
+                peticionArchivo(`/api/usuarios/${emisor.id}/foto`)
+                    .then(imagen => {
+                        const url = URL.createObjectURL(imagen);
+                        if (!foto.isConnected) {
+                            URL.revokeObjectURL(url);
+                            return;
+                        }
+                        urlsFotosMensajes.push(url);
+                        foto.src = url;
+                        iniciales.hidden = true;
+                        foto.hidden = false;
+                    })
+                    .catch(err => {
+                        if (foto.isConnected) {
+                            console.error("No se pudo cargar la foto del usuario:", err);
+                            foto.remove();
+                        }
+                    });
             }
         }
 
@@ -496,6 +674,7 @@ async function iniciarAdministracion() {
 // ======================================
 
 async function iniciarChat() {
+    await cargarPerfil();
     await iniciarAdministracion();
     await cargarMensajes();
 
